@@ -1,0 +1,5 @@
+/* Global reset — handled by App.css design system */
+body {
+  margin: 0;
+  padding: 0;
+}
