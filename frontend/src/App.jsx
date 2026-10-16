@@ -1,10 +1,21 @@
 import { useState, useEffect } from 'react';
+import { Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import ReportList from './components/ReportList';
 import ReportForm from './components/ReportForm';
-import { getAllReports, createReport, updateReport, deleteReport } from './api/reportApi';
+import Login from './components/Login';
+import Signup from './components/Signup';
+import {
+  getAllReports,
+  createReport,
+  updateReport,
+  deleteReport,
+  getUser,
+  isAuthenticated,
+  logout
+} from './api/reportApi';
 import './App.css';
 
-function App() {
+function Dashboard({ user, onLogout }) {
   const [reports, setReports] = useState([]);
   const [editing, setEditing] = useState(null);
   const [showForm, setShowForm] = useState(false);
@@ -19,7 +30,11 @@ function App() {
       setReports(response.data);
       setError(null);
     } catch (err) {
-      setError('Failed to fetch reports. Is the backend running on port 8080?');
+      if (err.response?.status === 401 || err.response?.status === 403) {
+        onLogout();
+      } else {
+        setError('Failed to fetch reports. Is the backend running on port 8080?');
+      }
     } finally {
       setLoading(false);
     }
@@ -117,10 +132,27 @@ function App() {
               <p className="header__subtitle">Manage and track medical reports</p>
             </div>
           </div>
-          <button className="btn btn--primary" onClick={handleNewReport} id="new-report-btn">
-            <span className="btn__icon">+</span>
-            New Report
-          </button>
+
+          <div className="header__actions">
+            {user && (
+              <div className="user-profile">
+                <div className="user-avatar">
+                  {user.name ? user.name.charAt(0).toUpperCase() : 'U'}
+                </div>
+                <div className="user-details">
+                  <span className="user-name">{user.name}</span>
+                  <span className="user-badge">{user.role?.replace('ROLE_', '') || 'USER'}</span>
+                </div>
+              </div>
+            )}
+            <button className="btn btn--primary" onClick={handleNewReport} id="new-report-btn">
+              <span className="btn__icon">+</span>
+              New Report
+            </button>
+            <button className="btn btn--secondary btn--logout" onClick={onLogout} id="logout-btn" title="Sign Out">
+              Sign Out
+            </button>
+          </div>
         </div>
       </header>
 
@@ -134,19 +166,19 @@ function App() {
           </div>
           <div className="stat-card stat-card--pending">
             <span className="stat-card__number">
-              {reports.filter(r => r.status === 'PENDING').length}
+              {reports.filter((r) => r.status === 'PENDING').length}
             </span>
             <span className="stat-card__label">Pending</span>
           </div>
           <div className="stat-card stat-card--progress">
             <span className="stat-card__number">
-              {reports.filter(r => r.status === 'IN_PROGRESS').length}
+              {reports.filter((r) => r.status === 'IN_PROGRESS').length}
             </span>
             <span className="stat-card__label">In Progress</span>
           </div>
           <div className="stat-card stat-card--completed">
             <span className="stat-card__number">
-              {reports.filter(r => r.status === 'COMPLETED').length}
+              {reports.filter((r) => r.status === 'COMPLETED').length}
             </span>
             <span className="stat-card__label">Completed</span>
           </div>
@@ -190,4 +222,53 @@ function App() {
   );
 }
 
-export default App;
+export default function App() {
+  const [currentUser, setCurrentUser] = useState(() => getUser());
+  const navigate = useNavigate();
+
+  const handleAuthSuccess = (userData) => {
+    setCurrentUser(userData);
+  };
+
+  const handleLogout = () => {
+    logout();
+    setCurrentUser(null);
+    navigate('/login', { replace: true });
+  };
+
+  return (
+    <Routes>
+      <Route
+        path="/login"
+        element={
+          isAuthenticated() ? (
+            <Navigate to="/" replace />
+          ) : (
+            <Login onAuthSuccess={handleAuthSuccess} />
+          )
+        }
+      />
+      <Route
+        path="/signup"
+        element={
+          isAuthenticated() ? (
+            <Navigate to="/" replace />
+          ) : (
+            <Signup onAuthSuccess={handleAuthSuccess} />
+          )
+        }
+      />
+      <Route
+        path="/"
+        element={
+          isAuthenticated() ? (
+            <Dashboard user={currentUser} onLogout={handleLogout} />
+          ) : (
+            <Navigate to="/login" replace />
+          )
+        }
+      />
+      <Route path="*" element={<Navigate to="/" replace />} />
+    </Routes>
+  );
+}

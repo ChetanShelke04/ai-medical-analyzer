@@ -12,9 +12,12 @@ ai-medical-report-analyzer/
 ## Backend (Spring Boot)
 
 - **Framework:** Spring Boot 3.2+
-- **Database:** H2 (in-memory, dev profile) — swap to PostgreSQL/MySQL later
-- **Entity:** `Report` (id, title, description, status, createdAt, updatedAt)
-- **API Base:** `http://localhost:8080/api/reports`
+- **Security:** Spring Security + Stateless JWT (jjwt 0.12.5)
+- **Database:** PostgreSQL (`reportdb` on port 5432)
+- **Entities:**
+  - `User` (id, name, email, password, role, createdAt)
+  - `Report` (id, title, description, status, createdAt, updatedAt)
+- **API Base:** `http://localhost:8080/api`
 
 ### Running the Backend
 
@@ -24,6 +27,15 @@ cd backend
 ```
 
 ### API Endpoints
+
+#### Authentication (Public)
+
+| Method | Endpoint               | Description                  |
+|--------|------------------------|------------------------------|
+| POST   | /api/auth/signup       | Register a new user + JWT    |
+| POST   | /api/auth/login        | Authenticate + return JWT    |
+
+#### Reports (Protected — Requires `Authorization: Bearer <token>`)
 
 | Method | Endpoint               | Description         |
 |--------|------------------------|---------------------|
@@ -35,9 +47,14 @@ cd backend
 
 ## Frontend (React + Vite)
 
-- **Framework:** React 18 + Vite
-- **Port:** 5173 (proxied to backend at 8080)
-- **Features:** Full CRUD UI for Report entity
+- **Framework:** React 19 + Vite
+- **Routing:** React Router v7
+- **Port:** 5173
+- **Features:**
+  - JWT Authentication (Signup, Login, Token storage, Auto-logout on 401/403)
+  - Protected Dashboard with User Profile & Sign Out
+  - Full CRUD UI for Medical Reports
+  - Real-time statistics cards (Total, Pending, In Progress, Completed)
 
 ### Running the Frontend
 
@@ -49,8 +66,6 @@ npm run dev
 
 ## Future Growth
 
-This starter is designed to evolve into the full AI Medical Analyzer:
-- Add AI-powered report analysis (integrate with Gemini/OpenAI)
-- Add user authentication (Spring Security + JWT)
-- Add file upload for medical documents
-- Add dashboard with analytics
+- Add AI-powered report analysis (integrate with Gemini API)
+- Add file upload for medical documents (PDF / lab scans)
+- Add dashboard with charts and historical trend analytics
